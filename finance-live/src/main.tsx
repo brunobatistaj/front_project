@@ -1,0 +1,15 @@
+import React from "react";
+import ReactDOM from "react-dom/client";
+
+import "@/index.css";
+
+import { AppRoutes } from "@/routes";
+import Providers from "./app/providers";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <Providers>
+      <AppRoutes />
+    </Providers>
+  </React.StrictMode>
+);
