@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from "react";
 
 import { socket } from "@/services/websocket/socket";
 import { useMarketStore } from "@/store/marketStore";
+import ThemeProvider from "./ThemeProvider";
 
 import type { Asset } from "@/types/asset";
 
@@ -26,5 +27,10 @@ export default function Providers({
         };
     }, [setAssets]);
 
-    return children;
+    return (
+        <>
+            <ThemeProvider />
+            {children}
+        </>
+    );
 }

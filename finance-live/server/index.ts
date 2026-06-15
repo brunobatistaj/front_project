@@ -1,7 +1,8 @@
 import express from "express";
 import http from "http";
-import { Server } from "socket.io";
 import cors from "cors";
+import { Server } from "socket.io";
+import WebSocket from "ws";
 
 const app = express();
 
@@ -18,48 +19,59 @@ const io = new Server(server, {
 interface Asset {
     symbol: string;
     price: number;
-    changePercent: number;
 }
 
-const assets: Asset[] = [
-    {
-        symbol: "BTC",
-        price: 540000,
-        changePercent: 0,
-    },
-    {
-        symbol: "ETH",
-        price: 18000,
-        changePercent: 0,
-    },
-    {
-        symbol: "AAPL",
-        price: 1200,
-        changePercent: 0,
-    },
-];
+const assets = new Map<string, Asset>();
 
 io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
 
-    socket.emit("market:update", assets);
+    socket.emit(
+        "market:update",
+        Array.from(assets.values())
+    );
 });
 
-function updatePrices() {
-    assets.forEach((asset) => {
-        const variation = Math.random() * 100 - 50;
+const streams = [
+    "btcusdt@trade",
+    "ethusdt@trade",
+    "solusdt@trade",
+];
 
-        asset.price += variation;
+const ws = new WebSocket(
+    `wss://stream.binance.com:9443/stream?streams=${streams.join("/")}`
+);
 
-        asset.changePercent = Number(
-            ((variation / asset.price) * 100).toFixed(2)
-        );
+ws.on("open", () => {
+    console.log("Connected to Binance");
+});
+
+ws.on("message", (data) => {
+    const parsed = JSON.parse(data.toString());
+
+    const trade = parsed.data;
+
+    const symbol = trade.s;
+    const price = Number(trade.p);
+
+    assets.set(symbol, {
+        symbol,
+        price,
     });
 
-    io.emit("market:update", assets);
-}
+    io.emit(
+        "market:update",
+        Array.from(assets.values())
+    );
+});
 
-setInterval(updatePrices, 2000);
+ws.on("error", (error) => {
+    console.error("Binance error:", error);
+});
+
+ws.on("close", () => {
+    console.log("Binance connection closed");
+});
 
 server.listen(3333, () => {
     console.log("WebSocket server running on port 3333");
